@@ -1,12 +1,20 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Jul 10 10:12:52 2019
+Created on Tue Jul 30 13:41:49 2019
 
 @author: Evelyn
 """
+# Goal: From some point on the groud, launch an object 150m. With all other variables held constant, 
+# we will be evolving multiple combinations of velocity and theta which we can launch the
+# projectile in order to find a set that shoots the projectile as close to 150m as possible.
+
+# Importing libraries we need
 import numpy as np
 import copy
+from timeit import default_timer
 
+# Creates a class of individuals. These will be the individual combinations of velocity and
+# theta that launch the projectile a certain distance.
 class indiv:
 
     # Defining the function that creates the initial population
@@ -15,7 +23,9 @@ class indiv:
         self.v = np.random.uniform(low=0, high= 100)
         self.theta = np.random.uniform(low= 0, high= 90)
         
-    # Defining the function that mutates the individual you give it    
+    # Defining the function that mutates the individual you give it. This function randomly selects
+    # one attribute of the individual, either its velocity or theta, and increases or decreases that 
+    # value by a maximum of 15. 
     def Mut(self):
         binary = np.random.randint(low = 0, high = 2)
         
@@ -29,7 +39,9 @@ class indiv:
             while self.theta < 0 or self.theta > 90:
                 self.theta = np.random.uniform(low = self.theta-15, high = self.theta+15)
         
-    # Defining the function that will only slightly mutate the individual you give it   
+    # Defining the function that will only slightly mutate the individual you give it. Same concept
+    # as the preceeding function, but it can only alter the theta or velocity by 5. Used on individuals
+    # with high fitness scores in order to fine tune them. 
     def fineMut(self):
         binary = np.random.randint(low = 0, high = 2)
         
@@ -39,16 +51,17 @@ class indiv:
                 self.v = np.random.uniform(low = self.v-5 , high = self.v+5)
                 
         else:
-            self.theta = np.random.uniform(low = self.theta-15, high = self.theta+15)
+            self.theta = np.random.uniform(low = self.theta-15, high = self.theta+5)
             while self.theta < 0 or self.theta > 90:
-                self.theta = np.random.uniform(low = self.theta-15, high = self.theta+15)
+                self.theta = np.random.uniform(low = self.theta-15, high = self.theta+5)
          
-    # Defining a function that calculates fitness score
+    # Defining a function that calculates fitness score (get as close to 150m as possible).
+    def rangeFit(self):
         '''return np.sqrt((1/(150-(((self.v**2)/9.8)*np.sin(2*self.theta)))**2) + (1/((45-(self.theta))**2)))'''
-        '''return 1/(150-((self.v**2/9.8)*np.sin(2*self.theta)))**2'''
-        return np.sqrt((1/(150-(((self.v**2)/9.8)*np.sin(2*self.theta)))**2) + (1/(self.v**2)) + (1/(((2*self.v)/9.8)*np.sin(2*self.theta))))
+        return 1/(150-((self.v**2/9.8)*np.sin(2*self.theta)))**2
+        '''return np.sqrt((1/(150-(((self.v**2)/9.8)*np.sin(2*self.theta)))**2) + (1/(self.v**2)) + (1/(((2*self.v)/9.8)*np.sin(2*self.theta))))'''
 
-
+# Initializing all lists used in the loop
 Pop = []
 sortedPop = []
 newPop = []
@@ -58,6 +71,9 @@ sortedTourney = []
 sortedNewPop = []
 finalPop = []
 genTicker = 0
+
+# Start the timer that tracks how long it takes to get an answer
+start = default_timer()
 
 # Creating the initial population
 for x in range(100):
@@ -78,10 +94,11 @@ if genTicker == 0:
     
 # Checks the best fitness score out of all the individuals. If it is close enough to the desired
 # solution, the loop stops and the individual is printed as the final answer. If not, it runs
-# through the generational loop until a suitable individual is found.
+# through the generational loop until a suitable individual is found. Or, if the algorithm takes more
+# than 100 generations to solve, it terminates.
 check = sortedPop[0].rangeFit()
 
-while check <= 100:
+while check <= 300 and genTicker <= 100:
     '''''''''''''''''''''''''''''''Start the Loop'''''''''''''''''''''''''''''''
 
     # First Cut: Selecting the individuals with the top ten fitness scores, putting them into 
@@ -230,26 +247,25 @@ while check <= 100:
         print(vel)'''
 
 '''''''''''''''''''''''''''''''''Finish the Loop'''''''''''''''''''''''''''''''''''''''
+# Determining and printing the final results
 
 finalV = sortedPop[0].v
 finalTheta = sortedPop[0].theta
 finalScore = sortedPop[0].rangeFit()
-print("   ")
-print("Here's your answer!")
-print("Velocity = ",finalV)
-print("Theta = ",finalTheta)
-print("Final Fitness Score = ",finalScore)
+runTime = default_timer() - start
 
-
-
-'''Notes n' Stuff'''
-#print(len(newPop))
-
-#print(Pop[0])
-#print(Pop[0].rangeFit)
-
-#x = np.array(Pop)
-#np.sort(x)
-#print([x.rangeFit() for x in Pop])
-#print([x.rangeFit() for x in sortedPop]) 
-'''End'''
+# If the loop was successful, print the results
+if genTicker <= 100:
+    print("   ")
+    print("Here's your answer!")
+    print("")
+    print("Velocity = ",finalV)
+    print("Theta = ",finalTheta)
+    print("Final Fitness Score = ",finalScore)
+    print("")
+    print("Run time = ", runTime, "seconds.")
+    
+# If the loop took too long, say so!
+if genTicker > 100:
+    print("Sorry, it looks like our algorithm got stuck :(")
+    print("Please try again")
